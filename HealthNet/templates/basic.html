@@ -1,0 +1,214 @@
+{% load fullcalendar_tags %}
+{% load staticfiles %}
+{% load material_form %}
+<!DOCTYPE html>
+<html>
+  <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>{% block title %}{%endblock%}HealthNet</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" type="text/css" href="/static/css/healthnet.css">
+    <!--Import materialize.css-->
+    <!--Import Google Icon Font-->
+     <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+     <!--Import materialize.css-->
+     <link type="text/css" rel="stylesheet" href="/static/css/materialize.min.css"  media="screen,projection"/>
+
+        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+      <style>    .waves-effect.waves-blue .waves-ripple {
+     /* The alpha value allows the text and background color
+     of the button to still show through. */
+      background-color: rgba(0, 176, 255, 0.65);
+      }</style>
+    {% block header %} {%endblock%}
+
+        {% fullcalendar_css %}
+        {% fullcalendar_print_css %}
+
+        {% include 'material/includes/material_css.html' %}
+        <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+
+        {% include 'material/includes/material_js.html' %}
+
+        {% fullcalendar_jquery_ui %}
+        {% fullcalendar_javascript %}
+
+        {% calendar_init calendar_config_options %}
+    <ul id="dropdown1" class="dropdown-content">
+
+      <li><a class="waves-effect waves-light blue-text" href="/account">Account</a></li>
+      <li class="divider"></li>
+      <li><a class="waves-effect waves-light blue-text" href="/logout">Logout</a></li>
+    </ul>
+    <ul id="dropdown2" class="dropdown-content">
+      {% for appointment in appointments %}
+      {% if appointment.confirmed == False %}
+      <li><a class="waves-effect waves-light blue-text" onclick="updateAppointment({{appointment.appointment_id}})">{{appointment.title}} with {{appointment.patient.user.first_name}} {{appointment.patient.user.last_name}}</a></li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+    {% block nav %}
+    <div class="navbar-fixed">
+      <nav>
+        <div class="nav-wrapper light-blue accent-3">
+              <a href="/" class="brand-logo">myHealth</a>
+              <a href="#" data-activates="mobile-demo" class="button-collapse"><i class="material-icons">menu</i></a>
+
+            <ul class="right hide-on-med-and-down">
+              {% if permissions == 'doctor' %}
+              <li {% block active_dashboard %} {% endblock %}><a class="waves-effect waves-light dropdown-button" href="#!" data-activates="dropdown2">{% if unconfirmed != 0 %}<span class="red badge white-text">{{unconfirmed}}</span></span><i class="material-icons right ">notifications</i></a>{%else%}<i class="material-icons">notifications_none</i></a>{% endif %}</li>
+              {% endif %}
+              {% if permissions == 'doctor' or permissions == 'nurse'%}
+              <li {% block active_account %} {% endblock %}><a class="dropdown-button" href="#!" data-activates="dropdown1">{% if permissions == 'doctor' %}Dr. {% elif permissions == 'nurse'%}Nurse {%endif%}{{user.last_name}}<i class="material-icons right">arrow_drop_down</i></a></li>
+              {% elif user.is_authenticated %}
+              <li><a class="dropdown-button" href="#!" data-activates="dropdown1">{{user.first_name}}<i class="material-icons right">arrow_drop_down</i></a></li>
+              {% else %}
+              <li><a class="waves-effect waves-light" href="/register">Register</a></li>
+              <li><a class="waves-effect waves-light" href="/login">Login</a></li>
+              {% endif %}
+
+              <!-- Dropdown Trigger -->
+            </ul>
+            <ul class="side-nav" id="mobile-demo">
+              <li><a href="sass.html">Sass</a></li>
+              <li><a href="badges.html">Components</a></li>
+              <li><a href="collapsible.html">Javascript</a></li>
+              <li><a href="mobile.html">Mobile</a></li>
+            </ul>
+        </div>
+      </nav>
+    </div>
+  {% endblock %}
+
+  </head>
+  <body>
+    <div class="preloader-background">
+    	<div class="preloader-wrapper big active">
+    		<div class="spinner-layer spinner-blue-only">
+    			<div class="circle-clipper left">
+    				<div class="circle"></div>
+    			</div>
+    			<div class="gap-patch">
+    				<div class="circle"></div>
+    			</div>
+    			<div class="circle-clipper right">
+    				<div class="circle"></div>
+    			</div>
+    		</div>
+    	</div>
+    </div>
+
+
+
+
+    {% block body %}
+
+        <p>Basic template loaded. Body not overwritten.</p>
+
+    {% endblock %}
+
+      {% if user.is_authenticated %}
+
+      <div id="apt-modal" class="modal modal-fixed-footer">
+
+        <form action='.' method='post' enctype="multipart/form-data">
+            <div id="apt-div">
+              {% if error != '' %}
+              <div class="modal-content">
+                <h4>New Appointment{% if permissions == 'doctor' %}/Test{% endif %}</h4>
+                {% if permissions == 'patient' %}<h5> with {{user.patient.doctor}} at {{user.patient.hospital}}</h5>{% endif %}
+                    {% csrf_token %}
+                    {% form form=cal_form %}{% endform %}
+              </div>
+              {% endif %}
+              <div class="modal-footer">
+                  {% if error == 'new_appointment' %}
+                      <a class="modal-action modal-close waves-effect waves-blue btn-flat" href="/">Cancel</a>
+                      <button class="modal-action modal-close waves-effect waves-light btn red" onclick="Materialize.toast('Appointment confirmed!',4000);" type="submit" name="Create">Create</button>
+                  {% elif error == 'update_appointment' %}
+                      {% if confirmed == 'True' and permissions == 'patient'%}
+                      <a class="left btn grey grey-text lighten-2 btn-flat" onclick="Materialize.toast('Sorry, but this appointment has already been confirmed! Please contact your hospital or doctor to reschedule.',12000);">
+                        <i class="material-icons left">delete</i>Delete
+                      </a>
+                      {% elif permissions == 'doctor' or permissions == 'patient'%}
+                      <button class="left waves-effect waves-red btn-flat" type="submit" name="Delete">
+                        <i class="material-icons left">delete</i>Delete
+                      </button>
+                      {% endif %}
+                      <a class="modal-action modal-close waves-effect waves-blue btn-flat" href="/">Cancel</a>
+                      {% if confirmed == 'False' and permissions == 'doctor' or confirmed == 'False' and permissions == 'nurse'%}
+                      <button class="modal-action modal-close waves-effect waves-light btn red" type="submit" name="Update">Confirm</button>
+                      {% elif confirmed == 'False' and permissions == 'patient' or confirmed == 'True' and permissions == 'doctor' or confirmed == 'True' and permissions == 'nurse' %}
+                      <button class="modal-action modal-close waves-effect waves-red btn-flat" type="submit" name="Update">Update</button>
+                      {% elif confirmed == 'True' and permissions == 'patient'%}
+                      <a class="btn grey grey-text lighten-2 btn-flat" onclick="Materialize.toast('Sorry, but this appointment has already been confirmed! Please contact your hospital or doctor to reschedule.',12000);">Update</a>
+                      {% endif %}
+                      {% if released == False and permissions == 'doctor' %}
+                      <button class="modal-action modal-close waves-effect waves-light btn red" type="submit" name="Release">
+                        Release
+                      </button>
+                      {% elif released == True and permissions == 'doctor' %}
+                      <a class="btn grey grey-text lighten-2 btn-flat" onclick="Materialize.toast('The results of this appointment/test have already been released',12000);">
+                        Release
+                      </a>
+                      {% endif %}
+                  {% elif error == 'create_prescription' %}
+                      <a class="modal-action modal-close waves-effect waves-blue btn-flat" href="/">Cancel</a>
+                      <button class="modal-action modal-close waves-effect waves-light btn green" name="create_prescription" value="{{ prescription.prescription_id }}">Create<i class="material-icons right">system_update_alt</i></button>
+                  {% elif error == 'update_prescription' %}
+                      <a class="modal-action modal-close waves-effect waves-blue btn-flat" href="/">Cancel</a>
+                      <button class="modal-action modal-close waves-effect waves-light btn green" name="update_prescription" value="{{ prescription.prescription_id }}">Update<i class="material-icons right">system_update_alt</i></button>
+                  {% elif error == 'update_patient' %}
+                      <a class="modal-action modal-close waves-effect waves-blue btn-flat" href="/">Cancel</a>
+                      <button class="modal-action modal-close waves-effect waves-light btn blue" name="update_patient" value="{{ patient.patient_id }}">Update<i class="material-icons right">system_update_alt</i></button>
+                  {% endif %}
+              </div>
+
+            </div>
+        </form>
+      </div>
+
+      <div class="fixed-action-btn horizontal">
+        {% if permissions == 'doctor' %}
+         <a id="menu" class="btn-floating btn-large red">
+         <i class="large material-icons">mode_edit</i>
+         {% else %}
+          <a id="menu" class="btn-floating btn-large red tooltipped" data-position="left" data-delay="50" data-tooltip="Schedule an Appointment" onclick="newAppointment()">
+        {% endif %}
+        <i class="large material-icons">library_add</i>
+       </a>
+       <ul>
+         {% if permissions == 'doctor' %}
+         <li><a class="btn-floating red tooltipped" data-position="top" data-delay="50" data-tooltip="New Appointment/Test" onclick="newAppointment()"><i class="material-icons">library_add</i></a></li>
+         <li><a class="btn-floating green tooltipped" data-position="top" data-delay="50" data-tooltip="New Prescription" onclick="newPrescription()"><i class="material-icons">playlist_add</i></a></li>
+         {% endif %}
+       </ul>
+
+      </div>
+      {% endif %}
+
+  </body>
+
+    {% block thefooter %}
+    <br>
+    <footer>
+         <script type="text/javascript">
+
+         document.addEventListener("DOMContentLoaded", function(){
+         var auto_open = '{{error}}'
+         var toast_msg = '{{notification}}'
+         if (auto_open != ''){
+             $('#apt-modal').modal('open');
+         }
+         if (toast_msg != null){
+            Materialize.toast(toast_msg, 8000)
+         }
+         });
+         </script>
+      <script type="text/javascript" src="/static/js/materialize.min.js"></script>
+      <script src="/static/js/healthnet.js"></script>
+    </footer>
+    {% endblock %}
+</html>

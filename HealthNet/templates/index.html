@@ -1,0 +1,162 @@
+{% extends "basic.html" %}
+{% load fullcalendar_tags %}
+{% load material_form %}
+
+{% block active_dashboard %}class="active"{% endblock %}
+
+{% block body %}
+    {% if user.is_authenticated %}
+    <br>
+    <div id="main-container" class="">
+
+        <div class="row">
+        <div class="col s8">
+        {% calendar %}
+        </div>
+        <div class="col s4">
+          {% if permissions == 'patient' %}
+
+          {% if prescriptions %}
+
+              <ul class="collapsible" data-collapsible="accordion">
+                {% for prescription in prescriptions %}
+                  <li>
+                      <div class="collapsible-header">{{prescription}}</div>
+                      <div class="collapsible-body">
+                        <form action="." method='POST'>
+                          <button class="waves-effect waves-light btn red" type="submit" name="refill_prescription" value="{{prescription.prescription_id}}">Refill</button>
+                          <button class="waves-effect waves-red btn-flat" type="submit" name="remove_prescription" value="{{prescription.prescription_id}}">Remove</button>
+                        </form>
+                      </div>
+                  </li>
+                      {% endfor %}
+              </ul>
+
+          {% else %}
+              <p>You currently do not have any prescribed medications.</p>
+
+          {% endif %}
+
+          {% if appointments != '' %}
+          <ul class="collapsible" data-collapsible="accordion">
+          {% for appointment in appointments %}
+          {% if permissions != 'patient' or appointment.released == True %}
+          <li>
+          <div class="collapsible-header">Results from {{appointment.title}} on {{appointment.start}}</div>
+          <div id="" style="border-bottom: 0px" class="collapsible-body">
+            {{appointment.attachments}}
+          </div>
+          </li>
+          {% endif %}
+          {% endfor %}
+          </ul>
+          {% endif %}
+          {% elif permissions == 'doctor' or permissions == 'nurse' %}
+              <br><br>
+              <ul class="collapsible" data-collapsible="accordion">
+
+
+              {% for patient in patients %}
+              <li>
+                <div class="collapsible-header">{{patient.user.first_name}} {{patient.user.last_name}}</div>
+                <div id="pat-div{{patient.patient_id}}" style="border-bottom: 0px" class="collapsible-body">
+                  {{patient.card}}
+                  <div class="container">
+                  <a class=" btn-flat" type="submit" onclick="getPrescriptions({{patient.patient_id}})">View{% if permissions == 'doctor'%}/Edit{%endif%} Medications</a>
+                  </div>
+                </div>
+
+                <div id="pat-actions{{patient_id}}" class="collapsible-body">
+                  <form action='.' method='post' enctype="multipart/form-data" id="patform{{patient.patient_id}}"/>
+                    <a class="waves-effect waves-light btn light-blue accent-3" onclick="updatePatient({{patient.patient_id}})">Update</a>
+                    {% if patient.admitted %}
+                    <button class="waves-effect waves-light btn red" type="submit" name="discharge_patient" value="{{patient.patient_id}}">Discharge</button>
+                    {% else %}
+                    <button class="waves-effect waves-light btn red" type="submit" name="admit_patient" value="{{patient.patient_id}}">Admit</button>
+                    {% endif %}
+                  </form>
+                </div>
+              </li>
+
+
+              {% endfor %}
+              </ul>
+          {% endif %}
+        </div>
+      </div>
+
+
+
+    </div>
+    {% else %}
+
+    <div id="index-banner" class="parallax-container">
+  				<br><br>
+  				<h1 class="header center">Your Lifeline</h1>
+  				<div class="row center">
+  					<h5 class="header col s12 light">We take the middleman out of medicine.</h5>
+  				</div>
+  		<div class="parallax img"><img src="/media/img/main.png"></div>
+  	</div>
+
+  	<div class="container">
+  		<div class="section">
+  			<div class="row">
+  				<div class="col s12 m4">
+  					<div class="icon-block">
+  						<h2 class="center blue-text"><i class="mdi-hardware-desktop-windows"></i></h2>
+  						<h5 class="center">Fast and Interactive</h5>
+
+  						<p class="light">myHealth is built using the latest in web and mobile technology. myHealth allows you to interact with your doctor, nurse, and hospital quickly and efficiently.</p>
+  					</div>
+  				</div>
+
+  				<div class="col s12 m4">
+  					<div class="icon-block">
+  						<h2 class="center blue-text"><i class="mdi-social-people"></i></h2>
+  						<h5 class="center">Schedule Appointments</h5>
+
+  						<p class="light">Tired of having to play phone tag with your doctors office just to schedule an appointment?  With myHealth you can schedule an appointment with the click of a button.</p>
+  					</div>
+  				</div>
+
+  				<div class="col s12 m4">
+  					<div class="icon-block">
+  						<h2 class="center blue-text"><i class="mdi-action-settings"></i></h2>
+  						<h5 class="center">View Test Results</h5>
+
+  						<p class="light">No longer do you have to go to the doctors office to pick up test results because myHealth allows you to easily view and export your test results.</p>
+  					</div>
+  				</div>
+  			</div>
+  		</div>
+  	</div>
+    {% endif %}
+    <!-- Tap Target Structure -->
+    <div class="tap-target red light-2" data-activates="menu">
+      <div class="tap-target-content white-text">
+        <h5>Welcome to myHealth!</h5>
+        <p>{% if permissions == 'doctor'%}Hover over this button to open up your 'new' menu. It allows you to add new appointments, tests, and prescriptions!
+          {% else %}
+          Click this button to add a new appointment!
+          {% endif %}
+
+        </p>
+      </div>
+    </div>
+<style>
+
+</style>
+
+{% block footer %}
+<script type="text/javascript">
+
+document.addEventListener("DOMContentLoaded", function(){
+
+$('.tap-target').tapTarget('{{opentap}}').delay(2000);
+
+});
+</script>
+
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,13 @@
+Django==1.10.5
+django-registration
+django-datetime-widget
+django-materialize-css
+django-material
+django-multiupload
+git+https://github.com/rodrigoamaral/django-fullcalendar.git#egg=django-fullcalendar
+Pillow
+reportlab
+git+git://github.com/Kozea/WeasyPrint
+django-localflavor
+django-input-mask
+jsonfield
